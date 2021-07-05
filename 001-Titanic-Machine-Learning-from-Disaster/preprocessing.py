@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 from sklearn.preprocessing import OneHotEncoder
+from sklearn.preprocessing import StandardScaler
 
 
 def preprocessing(train_data, test_data):
@@ -8,7 +9,8 @@ def preprocessing(train_data, test_data):
     This function preprocesses data in the following order:
         1. drops features whose 50% data are missing;
         2. fit missing values by medians;
-        3. one-hot encodes categorical features.
+        3. one-hot encodes categorical features & standardise continuous features;
+        4. concatenate the data of categorical features and the data of continuous features.
 
     - Arguments:
         - `train_data`: the data for training, contains `X_train` and `Y_train`.
@@ -38,7 +40,7 @@ def preprocessing(train_data, test_data):
     target_name = ["Survived"]
 
     X_train_orig = train_data[feature_names]
-    Y_train = train_data[target_name].to_numpy()
+    Y_train = train_data[target_name].to_numpy().flatten()
 
     X_test_orig = test_data[feature_names]
     # ---- <<< Step 0 <<< ----
@@ -125,9 +127,17 @@ def preprocessing(train_data, test_data):
     X_train_continuous = X_train[continuous_features]
     X_test_continous = X_test[continuous_features]
 
+    # Standardise the data of continuous features.
+    scaler = StandardScaler()
+    X_train_continuous_standardised = scaler.fit_transform(X_train_continuous)
+    X_test_categorical_standardised = scaler.transform(X_test_continous)
+    # ---- <<< Step 3 <<< ----
+
+    # ---- >>> Step 4 >>> ----
     # Reconstruct `X_train` & `X_test`.
-    X_train = np.concatenate([X_train_categorical_encoded, X_train_continuous], axis=1)
-    X_test = np.concatenate([X_test_categorical_encoded, X_test_continous], axis=1)
+    X_train = np.concatenate([X_train_categorical_encoded, X_train_continuous_standardised], axis=1)
+    X_test = np.concatenate([X_test_categorical_encoded, X_test_categorical_standardised], axis=1)
     assert(len(X_train) == len(Y_train))
+    # ---- <<< Step 4 <<< ----
 
     return X_train, Y_train, X_test
